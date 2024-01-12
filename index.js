@@ -10,7 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 const run = async () => {
-  // Create a MongoClient with a MongoClientOptions object to set the Stable API version
   const client = new MongoClient(process.env.MONGODB_URI, {
     serverApi: {
       version: ServerApiVersion.v1,
@@ -18,24 +17,24 @@ const run = async () => {
       deprecationErrors: true,
     },
   });
+
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    await client.connect(); // Establish MongoDB connection
 
     const db = client.db("book-catalog");
     const bookCollection = db.collection("books");
 
-    //get all books
     app.get("/books", async (req, res) => {
-      const cursor = bookCollection.find({});
-      console.log(cursor);
-      const books = await cursor.toArray();
-      res.send({ status: 200, data: books });
+      try {
+        const cursor = bookCollection.find({});
+        const books = await cursor.toArray();
+
+        const responseData = { status: 200, data: books };
+        res.send(responseData);
+      } catch (error) {
+        console.error("Error retrieving books:", error);
+        res.status(500).send({ status: 500, message: "Internal Server Error" });
+      }
     });
 
     app.get("/", (req, res) => {
@@ -43,11 +42,14 @@ const run = async () => {
     });
 
     app.listen(port, () => {
-      console.log(`Book Catalog app running on port :  ${port}`);
+      console.log(`Book Catalog app running on port: ${port}`);
     });
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error);
   } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    // Close the client when server is stopped
+    // await client.close();
   }
 };
-run().catch((err) => console.log(err));
+
+run().catch((err) => console.error("Error in run:", err));
