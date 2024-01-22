@@ -1,7 +1,7 @@
-require("dotenv").config();
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -34,6 +34,23 @@ const run = async () => {
       } catch (error) {
         console.error("Error retrieving books:", error);
         res.status(500).send({ status: 500, message: "Internal Server Error" });
+      }
+    });
+
+    app.post("/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const review = req.body;
+      // console.log(review);
+
+      const result = await bookCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $push: { reviews: review } }
+      );
+      if (result.modifiedCount === 1) {
+        res.status(200).json({ message: "Review has been updated" });
+      } else {
+        const message = "There are no books for the given review.";
+        res.status(404).json({ error: message });
       }
     });
 
