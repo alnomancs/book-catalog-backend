@@ -37,10 +37,25 @@ const run = async () => {
       }
     });
 
-    app.post("/reviews/:id", async (req, res) => {
+    app.get("/reviews/:id", async (req, res) => {
+      const bookId = req.params.id;
+
+      const bookWithReviews = await bookCollection.findOne(
+        { _id: new ObjectId(bookId) },
+        { projection: { _id: 0, reviews: 1 } }
+      );
+
+      if (bookWithReviews) {
+        res.json(bookWithReviews);
+      } else {
+        res.status(404).json({ error: "Review not found" });
+      }
+    });
+
+    app.post("/review/:id", async (req, res) => {
       const id = req.params.id;
       const review = req.body;
-      // console.log(review);
+      console.log(review);
 
       const result = await bookCollection.updateOne(
         { _id: new ObjectId(id) },
@@ -50,6 +65,43 @@ const run = async () => {
         res.status(200).json({ message: "Review has been updated" });
       } else {
         const message = "There are no books for the given review.";
+        res.status(404).json({ error: message });
+      }
+    });
+
+    app.patch("/review/:id/:email", async (req, res) => {
+      const bookId = req.params.id;
+      const email = req.params.email;
+      const updateReview = req.body.review;
+
+      const result = await bookCollection.findOneAndUpdate(
+        { _id: new ObjectId(bookId), "reviews.userEmail": email },
+        { $set: { "reviews.$.review": updateReview } }
+      );
+
+      if (result) {
+        res.status(200).json({ message: "Review has been updated" });
+      } else {
+        const message = "There are no books for the update review.";
+        res.status(404).json({ error: message });
+      }
+    });
+
+    app.delete("/review/:id/:email", async (req, res) => {
+      const bookId = req.params.id;
+      const email = req.params.email;
+
+      const result = await bookCollection.findOneAndDelete(
+        {
+          _id: new ObjectId(bookId),
+        },
+        { $pull: { reviews: { email } } }
+      );
+
+      if (result) {
+        res.status(200).json({ message: "Review has been delete" });
+      } else {
+        const message = "There are no books for the update review.";
         res.status(404).json({ error: message });
       }
     });
